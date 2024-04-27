@@ -10,15 +10,33 @@ const WIDTH = 2970;
 const HEIGHT = 2100;
 const GAP = 15;
 
-const images = await glob('images/*.jpg');
-const sizes = images.map((img) => imageSize(img));
+const PORT = 3000;
+
+function serveImage(request: Request): Response {
+  const url = new URL(request.url);
+  return new Response(Bun.file(url.pathname.replace(/^\//, '')));
+}
+
+const p = await puppeteer.launch();
+
+function delay(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 Bun.serve({
-  fetch(request, server) {
-    if (request.url.endsWith('.jpg')) {
-      const url = new URL(request.url);
-      return new Response(Bun.file(url.pathname.replace(/^\//, '')));
+  async fetch(request, server) {
+    const url = new URL(request.url);
+    if (url.pathname.endsWith('.jpg')) {
+      return serveImage(request);
     }
+    const [date] = url.pathname.split('/').slice(1);
+
+    const images = await glob(`images/${date}/*.jpg`);
+    if (images.length === 0) {
+      return new Response('404', { status: 404 });
+    }
+
+    const sizes = images.map((img) => imageSize(img));
     const nodes = searchSolution(
       WIDTH - OUTER_BORDER_W * 2,
       HEIGHT - OUTER_BORDER_H * 2,
@@ -36,7 +54,7 @@ Bun.serve({
       left: ${node.x * PPI}px;
       top: ${node.y * PPI}px;
       "
-  ><img src="${images[node.index as any]}" /></div>`
+  ><img src="http://localhost:${PORT}/${images[node.index as any]}" /></div>`
       )
       .join('');
     const html = `<!DOCTYPE html>
@@ -81,18 +99,19 @@ Bun.serve({
 </body>
 </html>`;
 
+    const page = await p.newPage();
+    await page.setContent(html);
+    await page.setViewport({ width: WIDTH * PPI, height: HEIGHT * PPI });
+    await page.screenshot({ path: `pages/${date}.png` });
+
     return new Response(html, {
       headers: {
         'Content-Type': 'text/html',
       },
     });
   },
-  port: 3000,
+  port: PORT,
 });
 
-const p = await puppeteer.launch();
-const page = await p.newPage();
-await page.goto('http://localhost:3000');
-await page.setViewport({ width: WIDTH * PPI, height: HEIGHT * PPI });
-await page.screenshot({ path: 'print.png' });
+// await page.goto('http://localhost:3000');
 
