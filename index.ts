@@ -3,8 +3,8 @@ import { glob } from 'glob';
 import { searchSolution, type Node } from './layout';
 import { imageSize } from 'image-size';
 
-const OUTER_BORDER_W = 170;
-const OUTER_BORDER_H = 100;
+const OUTER_BORDER_W = 250;
+const OUTER_BORDER_H = 120;
 const WIDTH = 2970;
 const HEIGHT = 2100;
 const GAP = 15;
@@ -17,10 +17,6 @@ function serveImage(request: Request): Response {
 }
 
 const p = await puppeteer.launch();
-
-function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function renderImagesPage(images: Array<string>, nodes: Array<Node>, { ppi = 1 }: { ppi: number }) {
   const nodesHtml = nodes
@@ -103,7 +99,7 @@ form.addEventListener('submit', async (e) => {
     method: 'post',
     body: JSON.stringify({ nodes: ${JSON.stringify(nodes)} })
   })
-  fetch('.')
+  alert('Saved!');
 });
 </script>
 </body>
